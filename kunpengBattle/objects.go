@@ -68,7 +68,7 @@ type KunPengWormhole struct {
 
 type KunPengTeam struct {
 	ID          int    `json:"id"`
-	Player      []int  `json:"players"`
+	Players     []int  `json:"players"`
 	Force       string `json:"force"`
 	Point       int    `json:"point"`
 	Remain_life int    `json:"remain_life"`

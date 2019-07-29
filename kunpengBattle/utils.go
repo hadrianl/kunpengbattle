@@ -26,6 +26,8 @@ func splitPackage(data []byte, atEOF bool) (int, []byte, error) {
 	return totalSize, msgBytes, nil
 }
 
-// func decode(msgBytes []byte) {}interface {}
+// func decode(msgBytes []byte, {}interface) error {
+
+// }
 
 // func encode({}interface) []byte{}

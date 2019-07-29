@@ -4,28 +4,39 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"strconv"
 )
 
 type KunPengBattleClient struct {
-	TeamID     int
-	TeamName   string
-	ServerIP   string
-	ServerPort int
-	conn       *battleConnection
-	reader     *bufio.Reader
-	writer     *bufio.Writer
-	recvChan   chan []byte
-	replyChan  chan []byte
-	errChan    chan error
+	TeamID       int
+	TeamName     string
+	ServerIP     string
+	ServerPort   int
+	conn         *battleConnection
+	reader       *bufio.Reader
+	writer       *bufio.Writer
+	Strategy     Strategy
+	legStartChan chan KunPengLegStart
+	legEndChan   chan KunPengLegEnd
+	roundChan    chan KunPengRound
+	errChan      chan error
+	terminalChan chan int
 }
 
-func NewKunPengBattleClient(teamID int, teamName string) KunPengBattleClient {
+func NewKunPengBattleClient(teamID int, teamName string, strategy Strategy) KunPengBattleClient {
 	client := KunPengBattleClient{TeamID: teamID, TeamName: teamName}
 	client.conn = new(battleConnection)
 	client.reader = bufio.NewReaderSize(client.conn, 1024*10)
 	client.writer = bufio.NewWriterSize(client.conn, 1024*10)
+
+	client.legStartChan = make(chan KunPengLegStart)
+	client.legEndChan = make(chan KunPengLegEnd)
+	client.roundChan = make(chan KunPengRound)
+	client.errChan = make(chan error, 10)
+	client.terminalChan = make(chan int)
+	client.Strategy = strategy
 
 	return client
 }
@@ -45,9 +56,38 @@ func (c *KunPengBattleClient) Start() error {
 		return err
 	}
 
-	log.Println("registrate finish!!!")
+	go c.receive()
+	// go c.send()
+strategyLoop:
+	for {
+		select {
+		case start := <-c.legStartChan:
+			if err := c.Strategy.LegStart(start); err != nil {
+				c.errChan <- err
+			}
+		case end := <-c.legEndChan:
+			if err := c.Strategy.LegEnd(end); err != nil {
+				c.errChan <- err
+			}
+		case round := <-c.roundChan:
+			action, err := c.Strategy.React(round)
+			if err != nil {
+				c.errChan <- err
+				break
+			}
+			if err := c.action(action); err != nil {
+				c.errChan <- err
+			}
 
-	c.receive()
+		// case <-time.After(time.Millisecond * 750):
+		// 	log.Printf("Time OUT!")
+		case err := <-c.errChan:
+			log.Printf("ERROR: %v", err)
+		case <-c.terminalChan:
+			log.Println("GAMEOVER!!!")
+			break strategyLoop
+		}
+	}
 
 	return nil
 }
@@ -57,31 +97,44 @@ func (c *KunPengBattleClient) receive() {
 	scanner.Split(splitPackage)
 	for scanner.Scan() {
 		msgBytes := scanner.Bytes()
-		// log.Printf(string(msgBytes))
-		msg := new(KunPengMsg)
+		var msgData json.RawMessage
+		msg := &KunPengMsg{Data: &msgData}
 		err := json.Unmarshal(msgBytes, msg)
 		if err != nil {
 			log.Printf("Unmarshal err: %v", err)
+			continue
 		}
 
-		log.Println(msg)
+		log.Println("RECV->", string(msgData))
 
-		// switch msg.Name {
-		// case "leg_start":
-		// 	leg_start := new(KunPengLegStart)
-		// 	err := json.Unmarshal(msg.Data, leg_start)
-		// case "round":
-		// 	round := new(KunPengLegStart)
-		// 	err := json.Unmarshal(msg.Data, round)
-		// case "leg_end":
-		// 	leg_end := new(KunPengLegStart)
-		// 	err := json.Unmarshal(msg.Data, leg_end)
-		// case "game_over":
-		// 	log.Println("game_over!!!")
-		// default:
-		// 	log.Printf("Unknown msg Name: %v", msg.Name)
-		// }
-
+		switch msg.Name {
+		case "leg_start":
+			legStart := new(KunPengLegStart)
+			err := json.Unmarshal(msgData, legStart)
+			if err != nil {
+				c.errChan <- err
+				continue
+			}
+			c.legStartChan <- *legStart
+		case "round":
+			round := new(KunPengRound)
+			err := json.Unmarshal(msgData, round)
+			if err != nil {
+				c.errChan <- err
+			}
+			c.roundChan <- *round
+		case "leg_end":
+			legEnd := new(KunPengLegEnd)
+			err := json.Unmarshal(msgData, legEnd)
+			if err != nil {
+				c.errChan <- err
+			}
+			c.legEndChan <- *legEnd
+		case "game_over":
+			c.terminalChan <- 1
+		default:
+			c.errChan <- fmt.Errorf("Unknown msg Name: %v", msg.Name)
+		}
 	}
 }
 
@@ -91,15 +144,41 @@ func (c *KunPengBattleClient) registrate() error {
 	kpMsg.Name = "registration"
 	kpMsg.Data = kpr
 
-	msgBytes, _ := json.Marshal(kpMsg)
+	if err := c.Strategy.Registrate(kpr); err != nil {
+		return nil
+	}
 
-	log.Println(string(msgBytes))
+	msgBytes, err := json.Marshal(kpMsg)
+
+	if err != nil {
+		return err
+	}
+
 	if err := c.send(msgBytes); err != nil {
 		return err
 	}
 
-	err := c.writer.Flush()
-	return err
+	log.Println("Registration Sent!!!")
+
+	return nil
+}
+
+func (c *KunPengBattleClient) action(act KunPengAction) error {
+	kpMsg := new(KunPengMsg)
+	kpMsg.Name = "action"
+	kpMsg.Data = act
+
+	msgBytes, err := json.Marshal(kpMsg)
+
+	if err != nil {
+		return err
+	}
+
+	if err := c.send(msgBytes); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (c *KunPengBattleClient) send(msgBytes []byte) error {
@@ -118,7 +197,7 @@ func (c *KunPengBattleClient) send(msgBytes []byte) error {
 
 	sendBytes := append(sizeBytes, msgBytes...)
 
-	log.Println(string(sendBytes))
+	log.Println("SEND->", string(msgBytes))
 
 	if _, err := c.writer.Write(sendBytes); err != nil {
 		return err

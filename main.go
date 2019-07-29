@@ -22,7 +22,8 @@ func main() {
 	flag.Parse()
 	fmt.Println("testing:", ip, port, teamID)
 
-	client := kpb.NewKunPengBattleClient(teamID, "Hadrianl")
+	strategy := new(hadrianlStrategy)
+	client := kpb.NewKunPengBattleClient(teamID, "Hadrianl", strategy)
 	err := client.Connect(ip, port)
 	if err != nil {
 		log.Panicln("Connection Failed!!!")
