@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"time"
 
 	kpb "./kunpengBattle"
 )
@@ -23,8 +24,18 @@ func main() {
 	fmt.Println("testing:", ip, port, teamID)
 
 	strategy := new(hadrianlStrategy)
-	client := kpb.NewKunPengBattleClient(teamID, "Hadrianl", strategy)
-	err := client.Connect(ip, port)
+	client := kpb.NewKunPengBattleClient(teamID, "RandomWalking", strategy)
+
+	var err error
+	for i := 0; i < 30; i++ {
+		err = client.Connect(ip, port)
+		if err == nil {
+			break
+		}
+
+		time.Sleep(1 * time.Second)
+	}
+
 	if err != nil {
 		log.Panicln("Connection Failed!!!")
 	}

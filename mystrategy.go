@@ -14,6 +14,7 @@ type hadrianlStrategy struct {
 	Teams          map[int]*kpb.KunPengTeam
 	Map            kpb.KunPengMap
 	CurrentRoundID int
+	MatrixMap      [][][]int
 }
 
 func (s *hadrianlStrategy) Registrate(registration kpb.KunPengRegistration) error {
@@ -60,6 +61,8 @@ func (s *hadrianlStrategy) React(round kpb.KunPengRound) (kpb.KunPengAction, err
 	action.ID = s.CurrentRoundID
 	action.Actions = make([]kpb.KunPengMove, 0, len(s.Allies))
 	move := [4]string{"up", "down", "right", "left"}
+	// players := round.Players
+	// powers := round.Power
 
 	for _, player := range s.Allies {
 
@@ -69,3 +72,54 @@ func (s *hadrianlStrategy) React(round kpb.KunPengRound) (kpb.KunPengAction, err
 	return *action, nil
 
 }
+
+// func (s *hadrianlStrategy) initMatrixMap(kpMap kpb.KunPengMap) [][][6]int {
+// 	width := kpMap.Width
+// 	height := kpMap.Height
+// 	// matrixMap := [width][height][6]int  // xoffset, yoffset
+// 	var matrixMap [][][6]int
+// 	for x := 0; x < width; x++ {
+// 		for y := 0; y < height; y++ {
+// 			matrixMap[x][y] = [2]int{0, 0}
+// 			// switch {
+// 			// case x == 0:
+// 			// 	matrixMap[x][y][0] = 0
+// 			// case x == width:
+// 			// 	matrixMap[x][y][2] = 0
+// 			// }
+
+// 			// switch {
+// 			// case y == 0:
+// 			// 	matrixMap[x][y][3] = 0
+// 			// case y == height:
+// 			// 	matrixMap[x][y][1] = 0
+// 			// }
+
+// 		}
+// 	}
+
+// 	for _, m := range kpMap.Meteor {
+// 		matrixMap[m.X][m.Y] = [6]int{-1, -1, -1, -1, -1, 0}
+// 	}
+
+// 	for _, t := range kpMap.Tunnel {
+// 		switch t.Direction {
+// 		case "up":
+// 			matrixMap[t.X][t.Y] = [6]int{0, 1}
+// 		case "right":
+// 			matrixMap[t.X][t.Y] = [6]int{1, 0}
+// 		case "down":
+// 			matrixMap[t.X][t.Y] = [6]int{0, -1}
+// 		case "left":
+// 			matrixMap[t.X][t.Y] = [6]int{-1, 0}
+// 		}
+
+// 	}
+
+// 	return matrixMap
+
+// }
+
+// func calcWeight(power kpb.KunPengPower, player kpb.KunPengPlayer) float32 {
+// 	for x:=player.X;
+// }
