@@ -121,6 +121,7 @@ func (c *KunPengBattleClient) receive() {
 			err := json.Unmarshal(msgData, round)
 			if err != nil {
 				c.errChan <- err
+				continue
 			}
 			c.roundChan <- *round
 		case "leg_end":
@@ -128,6 +129,7 @@ func (c *KunPengBattleClient) receive() {
 			err := json.Unmarshal(msgData, legEnd)
 			if err != nil {
 				c.errChan <- err
+				continue
 			}
 			c.legEndChan <- *legEnd
 		case "game_over":

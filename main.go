@@ -24,7 +24,7 @@ func main() {
 	fmt.Println("testing:", ip, port, teamID)
 
 	strategy := new(hadrianlStrategy)
-	client := kpb.NewKunPengBattleClient(teamID, "RandomWalking", strategy)
+	client := kpb.NewKunPengBattleClient(teamID, "Random", strategy)
 
 	var err error
 	for i := 0; i < 30; i++ {
