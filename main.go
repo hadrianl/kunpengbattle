@@ -21,9 +21,9 @@ func init() {
 
 func main() {
 	flag.Parse()
-	fmt.Println("testing:", ip, port, teamID)
+	fmt.Printf("%v join KunPengBattle (%v, %v):", teamID, ip, port)
 
-	strategy := new(hadrianlStrategy)
+	strategy := new(simpleStrategy)
 	client := kpb.NewKunPengBattleClient(teamID, "Random", strategy)
 
 	var err error

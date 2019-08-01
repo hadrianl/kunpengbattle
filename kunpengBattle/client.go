@@ -105,7 +105,7 @@ func (c *KunPengBattleClient) receive() {
 			continue
 		}
 
-		log.Println("RECV->", string(msgData))
+		// log.Println("RECV->", string(msgData))
 
 		switch msg.Name {
 		case "leg_start":
@@ -199,7 +199,7 @@ func (c *KunPengBattleClient) send(msgBytes []byte) error {
 
 	sendBytes := append(sizeBytes, msgBytes...)
 
-	log.Println("SEND->", string(msgBytes))
+	// log.Println("SEND->", string(msgBytes))
 
 	if _, err := c.writer.Write(sendBytes); err != nil {
 		return err
