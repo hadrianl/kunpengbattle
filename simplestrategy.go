@@ -55,6 +55,8 @@ func (s *simpleStrategy) LegEnd(legEnd kpb.KunPengLegEnd) error {
 	return nil
 }
 
+var movementOffset = map[string][2]int{"up": [2]int{0, -1}, "right": [2]int{1, 0}, "down": [2]int{0, 1}, "left": [2]int{-1, 0}, "": [2]int{0, 0}}
+
 func (s *simpleStrategy) React(round kpb.KunPengRound) (kpb.KunPengAction, error) {
 	log.Printf("Round: mode: %v  force: %v teamID: %v", round.Mode, s.Teams[s.TeamID].Force, s.TeamID)
 	s.CurrentRoundID = round.ID
@@ -62,7 +64,7 @@ func (s *simpleStrategy) React(round kpb.KunPengRound) (kpb.KunPengAction, error
 	action := new(kpb.KunPengAction)
 	action.ID = s.CurrentRoundID
 	action.Actions = make([]kpb.KunPengMove, 0, len(s.Allies))
-	move := [5]string{"up", "down", "right", "left", ""}
+	// move := [5]string{"up", "down", "right", "left", ""}
 	players := round.Players
 	enemyInView := []*kpb.KunPengPlayer{}
 	powers := round.Power
@@ -87,104 +89,149 @@ func (s *simpleStrategy) React(round kpb.KunPengRound) (kpb.KunPengAction, error
 	for _, player := range s.Allies {
 		// offset := float64(0)
 		// log.Println(player)
-		m := make([]string, 1)
-		powerWeightPoint := float64(0)
-		pm := ""
+		movementWeight := map[string]float64{"up": 0, "right": 0, "down": 0, "left": 0, "": 0}
+		// m := make([]string, 1)
 		if len(powers) > 0 {
 			for _, power := range powers {
-				xoffset := float64(power.X - player.X)
-				yoffset := float64(power.Y - player.Y)
-				// carea := math.Abs(xoffset + 1) * math.Abs(yoffset +1)
-				coffset := (math.Abs(xoffset) + math.Abs(yoffset))
-				cweightPoint := float64(power.Point) / coffset
-				if cweightPoint > powerWeightPoint {
-					// area = carea
-					// offset = coffset
-					powerWeightPoint = cweightPoint
-					if math.Abs(xoffset) >= math.Abs(yoffset) {
-						if xoffset >= 0 {
-							pm = "right"
-						} else {
-							pm = "left"
-						}
-					} else {
-						if yoffset >= 0 {
-							pm = "down"
-						} else {
-							pm = "up"
-						}
+				for k, w := range movementWeight {
+					xoffset := float64(power.X - (player.X + movementOffset[k][0]))
+					yoffset := float64(power.Y - (player.Y + movementOffset[k][1]))
+					coffset := (math.Abs(xoffset) + math.Abs(yoffset)) + 1
+					if coffset < 2*float64(s.Map.Vision)+1.0 {
+						cweightPoint := float64(power.Point) / coffset
+						movementWeight[k] = w + cweightPoint
 					}
+
 				}
+
+				// carea := math.Abs(xoffset + 1) * math.Abs(yoffset +1)
 			}
 		}
 
-		enemyWeightPoint := float64(0)
-		em := ""
 		if len(enemyInView) > 0 {
-			log.Println("enemyInView:", enemyInView)
+			// log.Println("enemyInView:", enemyInView)
 			// log.Printf("Mode: %v Force: %v", round.Mode, s.Teams[s.TeamID].Force)
 			for _, enemy := range enemyInView {
-				xoffset := float64(enemy.X - player.X)
-				yoffset := float64(enemy.Y - player.Y)
-
-				coffset := (math.Abs(xoffset) + math.Abs(yoffset))
-
-				if round.Mode != s.Teams[s.TeamID].Force {
-					cweightPoint := float64(enemy.Score+10) / coffset
-					if cweightPoint > enemyWeightPoint {
-						enemyWeightPoint = cweightPoint
-						if math.Abs(xoffset) >= math.Abs(yoffset) {
-							if xoffset >= 0 {
-								em = "right"
-							} else {
-								em = "left"
-							}
-						} else {
-							if yoffset >= 0 {
-								em = "down"
-							} else {
-								em = "up"
-							}
-						}
+				for k, w := range movementWeight {
+					xoffset := float64(enemy.X - (player.X + movementOffset[k][0]))
+					yoffset := float64(enemy.Y - (player.Y + movementOffset[k][1]))
+					coffset := (math.Abs(xoffset) + math.Abs(yoffset)) + 1
+					var cweightPoint float64
+					if round.Mode != s.Teams[s.TeamID].Force {
+						cweightPoint = float64(enemy.Score+10) / coffset
+					} else {
+						cweightPoint = float64(-15-player.Score) / coffset
 					}
-				} else {
-					cweightPoint := float64(-10-player.Score) / coffset
-					if cweightPoint < enemyWeightPoint {
-						enemyWeightPoint = cweightPoint
-						if math.Abs(xoffset) >= math.Abs(yoffset) {
-							if xoffset >= 0 {
-								em = "left"
-							} else {
-								em = "right"
-							}
-						} else {
-							if yoffset >= 0 {
-								em = "up"
-							} else {
-								em = "down"
-							}
-						}
+					movementWeight[k] = w + cweightPoint
+				}
+			}
+		}
+
+		for _, ally := range s.Allies {
+			for k, w := range movementWeight {
+				if ally.ID != player.ID {
+					xoffset := float64(ally.X - (player.X + movementOffset[k][0]))
+					yoffset := float64(ally.Y - (player.Y + movementOffset[k][1]))
+					coffset := (math.Abs(xoffset) + math.Abs(yoffset)) + 1
+					if coffset <= 2 {
+						cweightPoint := float64(-1) / coffset
+						movementWeight[k] = w + cweightPoint
 					}
 				}
 			}
 		}
 
-		if powerWeightPoint != 0 || enemyWeightPoint != 0 {
-			log.Println(powerWeightPoint, enemyWeightPoint)
-			if math.Abs(enemyWeightPoint) >= math.Abs(powerWeightPoint) {
-				m[0] = em
-			} else {
-				m[0] = pm
+		for _, meteor := range s.Map.Meteor {
+			for k, w := range movementWeight {
+				xoffset := float64(meteor.X - (player.X + movementOffset[k][0]))
+				yoffset := float64(meteor.Y - (player.Y + movementOffset[k][1]))
+				coffset := (math.Abs(xoffset) + math.Abs(yoffset)) + 1
+				if coffset == 1 {
+					cweightPoint := float64(-10) / coffset
+					movementWeight[k] = w + cweightPoint
+				}
+
 			}
-		} else {
-			m[0] = move[rand.Intn(5)]
 		}
 
-		ac := kpb.KunPengMove{Team: s.TeamID, PlayerID: player.ID, Move: m}
-		action.Actions = append(action.Actions, ac)
+		for x := range []int{-1, s.Map.Width} {
+			for y := range []int{-1, s.Map.Height} {
+				for k, w := range movementWeight {
+					xoffset := float64(x - (player.X + movementOffset[k][0]))
+					yoffset := float64(y - (player.Y + movementOffset[k][1]))
+					coffset := (math.Abs(xoffset) + math.Abs(yoffset)) + 1
+					if coffset == 1 {
+						cweightPoint := float64(-10) / coffset
+						movementWeight[k] = w + cweightPoint
+					}
 
+				}
+			}
+		}
+
+		skipMove := []string{}
+		for _, m := range s.Map.Tunnel {
+			switch {
+			case m.Y == player.Y && m.X-player.X == 1 && m.Direction == "left":
+				skipMove = append(skipMove, "right")
+				fallthrough
+			case m.Y == player.Y && m.X-player.X == -1 && m.Direction == "right":
+				skipMove = append(skipMove, "left")
+				fallthrough
+			case m.X == player.X && m.Y-player.Y == -1 && m.Direction == "down":
+				skipMove = append(skipMove, "up")
+				fallthrough
+			case m.X == player.X && m.Y-player.Y == 11 && m.Direction == "up":
+				skipMove = append(skipMove, "down")
+				fallthrough
+			case (player.X == 0 || player.X == s.Map.Width-1) && (player.Y == 0 || player.Y == s.Map.Height-1):
+				skipMove = append(skipMove, "")
+
+				// default:
+				// 	skipMove = append(skipMove, "")
+			}
+		}
+
+		log.Println(movementWeight)
+
+		ac := kpb.KunPengMove{Team: s.TeamID, PlayerID: player.ID, Move: choiceMovement(movementWeight, skipMove...)}
+		log.Println(ac)
+		action.Actions = append(action.Actions, ac)
 	}
 
 	return *action, nil
+
+}
+
+func bool2Int(b bool) uint {
+	if b {
+		return 1
+	}
+
+	return 0
+}
+
+func choiceMovement(mw map[string]float64, skipMove ...string) []string {
+	var move []string
+	var weight = -math.MaxFloat64
+	// mwLoog:
+	for k, w := range mw {
+		// for _, sm := range skipMove {
+		// 	if sm == k {
+		// 		continue mwLoog
+		// 	}
+		// }
+
+		if w >= weight {
+			weight = w
+			move = []string{k}
+		}
+	}
+
+	if weight == 0 && move[0] == "" {
+		move[0] = []string{"up", "down", "right", "left"}[rand.Intn(4)]
+	}
+
+	return move
 
 }

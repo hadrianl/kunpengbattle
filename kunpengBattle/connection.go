@@ -3,6 +3,7 @@ package kunpengBattle
 import (
 	"log"
 	"net"
+	"time"
 	"sync/atomic"
 )
 
@@ -41,16 +42,16 @@ func (c *battleConnection) reset() {
 
 func (c *battleConnection) connect(address string) error {
 	var err error
-	var tcpAddr *net.TCPAddr
+	// var tcpAddr *net.TCPAddr
 	c.reset()
-	tcpAddr, err = net.ResolveTCPAddr("tcp4", address)
-	if err != nil {
-		log.Printf("ResolveTCPAddr Error: %v", err)
-		return err
-	}
+	// tcpAddr, err = net.ResolveTCPAddr("tcp4", address)
+	// if err != nil {
+	// 	log.Printf("ResolveTCPAddr Error: %v", err)
+	// 	return err
+	// }
 
-	c.conn, err = net.DialTCP("tcp4", nil, tcpAddr)
-	// c.conn, err = net.DialTimeout("tcp4", address, time.Second*30)
+	// c.conn, err = net.DialTCP("tcp4", nil, tcpAddr)
+	c.conn, err = net.DialTimeout("tcp4", address, time.Second*1)
 
 	if err != nil {
 		log.Printf("DialTCP Error: %v", err)
