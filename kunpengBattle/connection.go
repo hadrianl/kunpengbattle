@@ -1,10 +1,10 @@
 package kunpengBattle
 
 import (
-	"log"
+	"fmt"
 	"net"
-	"time"
 	"sync/atomic"
+	"time"
 )
 
 type battleConnection struct {
@@ -54,11 +54,11 @@ func (c *battleConnection) connect(address string) error {
 	c.conn, err = net.DialTimeout("tcp4", address, time.Second*1)
 
 	if err != nil {
-		log.Printf("DialTCP Error: %v", err)
+		fmt.Printf("DialTCP Error: %v\n", err)
 		return err
 	}
 
-	log.Println("TCP Socket Connected to:", c.conn.RemoteAddr())
+	fmt.Println("TCP Socket Connected to:", c.conn.RemoteAddr())
 
 	return err
 }

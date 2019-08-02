@@ -5,14 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
-	"os"
+	// "log"
+	// "os"
 	"strconv"
 )
 
-func init() {
-	log.SetOutput(os.Stdout)
-}
 
 type KunPengBattleClient struct {
 	TeamID       int
@@ -87,9 +84,9 @@ strategyLoop:
 		// case <-time.After(time.Millisecond * 750):
 		// 	log.Printf("Time OUT!")
 		case err := <-c.errChan:
-			log.Printf("ERROR: %v", err)
+			fmt.Printf("ERROR: %v", err)
 		case <-c.terminalChan:
-			log.Println("GAMEOVER!!!")
+			fmt.Println("GAMEOVER!!!")
 			break strategyLoop
 		}
 	}
@@ -106,11 +103,11 @@ func (c *KunPengBattleClient) receive() {
 		msg := &KunPengMsg{Data: &msgData}
 		err := json.Unmarshal(msgBytes, msg)
 		if err != nil {
-			log.Printf("Unmarshal err: %v", err)
+			fmt.Printf("Unmarshal err: %v", err)
 			continue
 		}
 
-		log.Println("RECV->", string(msgData))
+		fmt.Println("RECV->", string(msgData))
 
 		switch msg.Name {
 		case "leg_start":
@@ -165,7 +162,7 @@ func (c *KunPengBattleClient) registrate() error {
 		return err
 	}
 
-	log.Println("Registration Sent!!!")
+	fmt.Println("Registration Sent!!!")
 
 	return nil
 }
@@ -204,7 +201,7 @@ func (c *KunPengBattleClient) send(msgBytes []byte) error {
 
 	sendBytes := append(sizeBytes, msgBytes...)
 
-	log.Println("SEND->", string(msgBytes))
+	fmt.Println("SEND->", string(msgBytes))
 
 	if _, err := c.writer.Write(sendBytes); err != nil {
 		return err

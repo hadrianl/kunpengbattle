@@ -1,9 +1,10 @@
 package main
 
 import (
-	"log"
+	// "log"
 	"math"
 	"math/rand"
+	"fmt"
 
 	kpb "./kunpengBattle"
 )
@@ -58,7 +59,7 @@ func (s *simpleStrategy) LegEnd(legEnd kpb.KunPengLegEnd) error {
 var movementOffset = map[string][2]int{"up": [2]int{0, -1}, "right": [2]int{1, 0}, "down": [2]int{0, 1}, "left": [2]int{-1, 0}, "": [2]int{0, 0}}
 
 func (s *simpleStrategy) React(round kpb.KunPengRound) (kpb.KunPengAction, error) {
-	log.Printf("Round: mode: %v  force: %v teamID: %v", round.Mode, s.Teams[s.TeamID].Force, s.TeamID)
+	fmt.Printf("Round: mode: %v  force: %v teamID: %v", round.Mode, s.Teams[s.TeamID].Force, s.TeamID)
 	s.CurrentRoundID = round.ID
 
 	action := new(kpb.KunPengAction)
@@ -192,10 +193,7 @@ func (s *simpleStrategy) React(round kpb.KunPengRound) (kpb.KunPengAction, error
 			}
 		}
 
-		log.Println(movementWeight)
-
 		ac := kpb.KunPengMove{Team: s.TeamID, PlayerID: player.ID, Move: choiceMovement(movementWeight, skipMove...)}
-		log.Println(ac)
 		action.Actions = append(action.Actions, ac)
 	}
 

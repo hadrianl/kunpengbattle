@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
+	// "log"
 	"time"
 
 	kpb "./kunpengBattle"
@@ -21,7 +21,7 @@ func init() {
 
 func main() {
 	flag.Parse()
-	fmt.Printf("%v join KunPengBattle (%v, %v):", teamID, ip, port)
+	fmt.Printf("%v join KunPengBattle (%v, %v): \n", teamID, ip, port)
 
 	strategy := new(simpleStrategy)
 	client := kpb.NewKunPengBattleClient(teamID, "Random", strategy)
@@ -37,7 +37,7 @@ func main() {
 	}
 
 	if err != nil {
-		log.Panicln("Connection Failed!!!")
+		fmt.Println("Connection Failed!!!")
 	}
 
 	client.Start()
