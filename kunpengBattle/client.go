@@ -6,8 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 )
+
+func init() {
+	log.SetOutput(os.Stdout)
+}
 
 type KunPengBattleClient struct {
 	TeamID       int
