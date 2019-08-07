@@ -51,7 +51,7 @@ func (c *battleConnection) connect(address string) error {
 	// }
 
 	// c.conn, err = net.DialTCP("tcp4", nil, tcpAddr)
-	c.conn, err = net.DialTimeout("tcp4", address, time.Second*1)
+	c.conn, err = net.DialTimeout("tcp", address, time.Second*1)
 
 	if err != nil {
 		fmt.Printf("DialTCP Error: %v\n", err)
